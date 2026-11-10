@@ -1,3 +1,4 @@
+
 {
   "name": "backend-m01010322",
   "version": "1.0.0",
@@ -13,8 +14,9 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "hello-world.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
