@@ -10,6 +10,8 @@ var app = express();
 app.use(cors());
 app.use(express.json());
 
+var path = require("path");
+
 // Build MongoDB connection string from environment variables
 var mongoUri =
     process.env.MONGODB_PREFIX +
@@ -21,10 +23,12 @@ var DB_NAME = "CourseworkDB";
 var LESSONS_COLLECTION = "Lessons";
 
 var SEED_LESSONS = [
-    { Id: "CST3144", subject: "Full Stack Development", Location: "Room 101", price: 10, availibility: 5 },
-    { Id: "CST3145", subject: "Business Intelligence", Location: "Room 102", price: 20, availibility: 5 },
-    { Id: "CST3146", subject: "AI", Location: "Room 103", price: 10, availibility: 5 }
+    { Id: "CST3144", subject: "Full Stack Development", location: "Room 101", price: 10, availability: 5 },
+    { Id: "CST3145", subject: "Business Intelligence", location: "Room 102", price: 20, availability: 5 },
+    { Id: "CST3146", subject: "AI", location: "Room 103", price: 10, availability: 5 }
 ];
+
+app.use("/images", express.static(path.resolve(__dirname, "images")));
 
 var client;
 var db;
@@ -94,4 +98,24 @@ connectToMongoDB()
     .catch(function (err) {
         console.error("Failed to connect to MongoDB:", err);
         process.exit(1);
+    });
+
+    // 1. Logger
+    app.use(function (req, res, next) {
+        console.log(new Date().toISOString() + " | " + req.method + " " + req.url);
+        next();
+    });
+
+    // 2. Static images
+    var path = require("path");
+    app.use("/images", express.static(path.join(__dirname, "images")));
+
+    // 3. Image not found -> error message
+    app.use("/images", function (req, res) {
+        res.status(404).send("Image not found");
+    });
+
+    // 4. Final 404 handler
+    app.use(function (req, res) {
+        res.status(404).send("Page not found");
     });
