@@ -1,18 +1,13 @@
-
 require("dotenv").config({ path: "./config.env" });
 
 var express = require("express");
 var cors = require("cors");
+var path = require("path");
 var { MongoClient } = require("mongodb");
 
 var app = express();
 
-app.use(cors());
-app.use(express.json());
-
-var path = require("path");
-
-// Build MongoDB connection string from environment variables
+// ---------- Config ----------
 var mongoUri =
     process.env.MONGODB_PREFIX +
     process.env.MONGODB_USERNAME + ":" +
@@ -21,21 +16,60 @@ var mongoUri =
 
 var DB_NAME = "CourseworkDB";
 var LESSONS_COLLECTION = "Lessons";
+var PORT = process.env.PORT || 3000;
 
 var SEED_LESSONS = [
-    { Id: "CST3144", subject: "Full Stack Development", location: "Room 101", price: 10, availability: 5 },
-    { Id: "CST3145", subject: "Business Intelligence", location: "Room 102", price: 20, availability: 5 },
-    { Id: "CST3146", subject: "AI", location: "Room 103", price: 10, availability: 5 }
+    { Id: "CST3144", subject: "Full Stack Development", location: "Room 101", price: 10, availability: 5, image: "full-stack.jpg" },
+    { Id: "CST3145", subject: "Business Intelligence", location: "Room 102", price: 20, availability: 5, image: "business-intelligence.jpg" },
+    { Id: "CST3146", subject: "AI", location: "Room 103", price: 10, availability: 5, image: "ai.jpg" }
 ];
-
-app.use("/images", express.static(path.resolve(__dirname, "images")));
 
 var client;
 var db;
 
+// ---------- Middleware (order matters) ----------
+app.use(cors());
+app.use(express.json());
+
+// 1. Logger: first, so every request is logged
+app.use(function (req, res, next) {
+    console.log(new Date().toISOString() + " | " + req.method + " " + req.url);
+    next();
+});
+
+// ---------- Routes ----------
+app.get("/lessons", function (req, res) {
+    db.collection(LESSONS_COLLECTION)
+        .find()
+        .toArray()
+        .then(function (lessons) {
+            res.status(200).json(lessons);
+        })
+        .catch(function (err) {
+            console.error("Error retrieving lessons:", err);
+            res.status(500).json({ error: "Failed to retrieve lessons" });
+        });
+});
+
+// (POST /orders and PUT /lessons/:id will go here)
+
+// ---------- Static images ----------
+// 2. Serves the file if it exists, otherwise falls through to the next handler
+app.use("/images", express.static(path.resolve(__dirname, "images")));
+
+// 3. Image not found
+app.use("/images", function (req, res) {
+    res.status(404).send("Image not found");
+});
+
+// 4. Final 404 for any other unknown route
+app.use(function (req, res) {
+    res.status(404).send("Page not found");
+});
+
+// ---------- MongoDB connection and startup ----------
 function connectToMongoDB() {
     return new Promise(function (resolve, reject) {
-
         if (
             !process.env.MONGODB_PREFIX ||
             !process.env.MONGODB_USERNAME ||
@@ -50,9 +84,7 @@ function connectToMongoDB() {
         client.connect()
             .then(function () {
                 db = client.db(DB_NAME);
-
                 console.log("Successfully connected to MongoDB (CourseworkDB)");
-
                 return db.collection(LESSONS_COLLECTION).countDocuments();
             })
             .then(function (count) {
@@ -69,26 +101,6 @@ function connectToMongoDB() {
     });
 }
 
-// GET all lessons
-app.get("/lessons", function (req, res) {
-    db.collection(LESSONS_COLLECTION)
-        .find()
-        .toArray()
-        .then(function (lessons) {
-            res.status(200).json(lessons);
-        })
-        .catch(function (err) {
-            console.error("Error retrieving lessons:", err);
-            res.status(500).json({
-                error: "Failed to retrieve lessons"
-            });
-        });
-});
-
-// Render dynamically assigns the port
-var PORT = process.env.PORT || 3000;
-
-// Start server after MongoDB connection
 connectToMongoDB()
     .then(function () {
         app.listen(PORT, "0.0.0.0", function () {
@@ -98,24 +110,4 @@ connectToMongoDB()
     .catch(function (err) {
         console.error("Failed to connect to MongoDB:", err);
         process.exit(1);
-    });
-
-    // 1. Logger
-    app.use(function (req, res, next) {
-        console.log(new Date().toISOString() + " | " + req.method + " " + req.url);
-        next();
-    });
-
-    // 2. Static images
-    var path = require("path");
-    app.use("/images", express.static(path.join(__dirname, "images")));
-
-    // 3. Image not found -> error message
-    app.use("/images", function (req, res) {
-        res.status(404).send("Image not found");
-    });
-
-    // 4. Final 404 handler
-    app.use(function (req, res) {
-        res.status(404).send("Page not found");
     });
