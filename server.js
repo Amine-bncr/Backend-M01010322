@@ -17,6 +17,7 @@ var mongoUri =
 
 var DB_NAME = "CourseworkDB";
 var LESSONS_COLLECTION = "Lessons";
+var ORDERS_COLLECTION = "Orders";
 var PORT = process.env.PORT || 3000;
 
 var SEED_LESSONS = [
