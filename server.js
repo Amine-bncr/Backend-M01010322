@@ -3,7 +3,8 @@ require("dotenv").config({ path: "./config.env" });
 var express = require("express");
 var cors = require("cors");
 var path = require("path");
-var { MongoClient } = require("mongodb");
+var { MongoClient, ObjectId } = require("mongodb");
+
 
 var app = express();
 
@@ -38,6 +39,7 @@ app.use(function (req, res, next) {
 });
 
 // ---------- Routes ----------
+// GET: retrieve all lessons
 app.get("/lessons", function (req, res) {
     db.collection(LESSONS_COLLECTION)
         .find()
@@ -51,7 +53,31 @@ app.get("/lessons", function (req, res) {
         });
 });
 
-// (POST /orders and PUT /lessons/:id will go here)
+// POST: save a new order
+app.post("/orders", async function (req, res) {
+    try {
+        const result = await db.collection("Orders").insertOne(req.body);
+        res.status(201).json(result);
+    } catch (err) {
+        console.error("Error saving order:", err);
+        res.status(500).json({ error: "Failed to save order" });
+    }
+});
+
+// PUT: update any field(s) of a lesson
+app.put("/lessons/:id", async function (req, res) {
+    try {
+        const result = await db.collection(LESSONS_COLLECTION).updateOne(
+            { _Id: new ObjectId(req.params.id) },
+            { $set: req.body }
+        );
+        res.json(result);
+    } catch (err) {
+        console.error("Error updating lesson:", err);
+        res.status(500).json({ error: "Failed to update lesson" });
+    }
+});
+
 
 // ---------- Static images ----------
 // 2. Serves the file if it exists, otherwise falls through to the next handler
