@@ -97,6 +97,38 @@ app.put("/lessons/:id", async function (req, res) {
     }
 });
 
+// DELETE: delete a lesson by Id
+app.delete("/orders/:id", async function (req, res) {
+    try {
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                error: "Invalid order ID"
+            });
+        }
+
+        const result = await db.collection(ORDERS_COLLECTION).deleteOne({
+            _id: new ObjectId(req.params.id)
+        });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({
+                error: "Order not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Order deleted successfully",
+            result: result
+        });
+
+    } catch (err) {
+        console.error("Error deleting order:", err);
+        res.status(500).json({
+            error: "Failed to delete order"
+        });
+    }
+});
+
 
 // ---------- Static images ----------
 // 2. Serves the file if it exists, otherwise falls through to the next handler
