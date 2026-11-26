@@ -69,13 +69,31 @@ app.post("/orders", async function (req, res) {
 app.put("/lessons/:id", async function (req, res) {
     try {
         const result = await db.collection(LESSONS_COLLECTION).updateOne(
-            { _Id: new ObjectId(req.params.id) },
-            { $set: req.body }
+            { Id: req.params.id },
+            {
+                $set: {
+                    availability: Number(req.body.availability)
+                }
+            }
         );
-        res.json(result);
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                error: "Lesson not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Lesson updated successfully",
+            result: result
+        });
+
     } catch (err) {
         console.error("Error updating lesson:", err);
-        res.status(500).json({ error: "Failed to update lesson" });
+        res.status(500).json({
+            error: "Failed to update lesson",
+            details: err.message
+        });
     }
 });
 
